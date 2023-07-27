@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.AI; // AI, 내비게이션 시스템 관련 코드 가져오기
 
@@ -22,6 +23,10 @@ public class Zombie : LivingEntity
     public float timeBetAttack = 0.5f; // 공격 간격
     private float lastAttackTime; // 마지막 공격 시점
 
+    // { 여기는 임시 변수
+    private Vector3 tempHItPoint = default;
+    // } 여기는 임시 변수
+
     // 추적할 대상이 존재하는지 알려주는 프로퍼티
     private bool hasTarget {
         get
@@ -39,11 +44,22 @@ public class Zombie : LivingEntity
 
     private void Awake() {
         // 초기화
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        zombieAnimator = GetComponent<Animator>();
+        zombieAudioPlayer = GetComponent<AudioSource>();
+
+        zombieRenderer = GetComponentInChildren<Renderer>();
     }
 
     // 좀비 AI의 초기 스펙을 결정하는 셋업 메서드
     public void Setup(ZombieData zombieData) {
-        
+        startingHealth = zombieData.health;
+        health = zombieData.health;
+        damage = zombieData.damage;
+
+        navMeshAgent.speed = zombieData.speed;
+
+        zombieRenderer.material.color = zombieData.skinColor;
     }
 
     private void Start() {
@@ -59,26 +75,93 @@ public class Zombie : LivingEntity
     // 주기적으로 추적할 대상의 위치를 찾아 경로 갱신
     private IEnumerator UpdatePath() {
         // 살아 있는 동안 무한 루프
-        while (!dead)
+        while (dead == false)
         {
+            if (hasTarget)
+            {
+                // 추적 대상 존재 : 경로를 갱신하고 AI 이동을 계속 진행
+                navMeshAgent.isStopped = false;
+                navMeshAgent.SetDestination(
+                    targetEntity.transform.position);
+            }
+            else
+            {
+                // 추적 대상 없음 : AI 이동 중지
+                navMeshAgent.isStopped = true;
+
+                // 20 유닛의 반지름을 가진 가상의 구를 그렸을 떄 구와 겹치는 모든 콜라이더를 가져옴
+                // 단, whatIsTarget 레어어를 가진 콜라이더만 가져오도록 필터링
+                Collider[] coliders =
+                    Physics.OverlapSphere(transform.position, 20f, whatIsTarget);
+
+                for (int i = 0; i < coliders.Length; i++)
+                {
+                    LivingEntity livingEntity = coliders[i].GetComponent<LivingEntity>();
+
+                    if (livingEntity != null && livingEntity.dead == false)
+                    {
+                        targetEntity = livingEntity;
+                        break;
+                    }
+                }       // loop: WhatIsTarget 레이어를 지닌 주변 콜라이더를 모두 순회하는 루프
+
+            }
+
             // 0.25초 주기로 처리 반복
             yield return new WaitForSeconds(0.25f);
-        }
-    }
+        }       // loop: 좀비가 살아있는 동안 반복하는 루프
+    }       // UpdatePath()
 
     // 데미지를 입었을 때 실행할 처리
     public override void OnDamage(float damage, Vector3 hitPoint, Vector3 hitNormal) {
         // LivingEntity의 OnDamage()를 실행하여 데미지 적용
+
+
+        if (dead == false)
+        {
+            hitEffect.transform.position = hitPoint;
+            hitEffect.transform.rotation = Quaternion.LookRotation(hitNormal);
+            hitEffect.Play();
+
+            zombieAudioPlayer.PlayOneShot(hitSound);
+        }
         base.OnDamage(damage, hitPoint, hitNormal);
-    }
+    }       // OnDamage()
 
     // 사망 처리
     public override void Die() {
         // LivingEntity의 Die()를 실행하여 기본 사망 처리 실행
         base.Die();
+
+        Collider[] zombieColliders = GetComponents<Collider>();
+        for (int i = 0; i < zombieColliders.Length; i++)
+        {
+            zombieColliders[i].enabled = false;
+        }       // loop: 캡슐 콜라이더와 박스 콜라이더를 끄는 루프
+
+        navMeshAgent.isStopped = true;
+        navMeshAgent.enabled = false;
+
+        zombieAnimator.SetTrigger("Die");
+        zombieAudioPlayer.PlayOneShot(deathSound);
     }
 
     private void OnTriggerStay(Collider other) {
         // 트리거 충돌한 상대방 게임 오브젝트가 추적 대상이라면 공격 실행
+
+        if (dead == false && lastAttackTime + timeBetAttack <= Time.time)
+        {
+            LivingEntity attackTarget = other.GetComponent<LivingEntity>();
+
+            if (attackTarget != null && attackTarget == targetEntity)
+            {
+                lastAttackTime = Time.time;
+
+                tempHItPoint = other.ClosestPoint(transform.position);
+                Vector3 hitNormal = transform.position - other.transform.position;
+
+                attackTarget.OnDamage(damage, tempHItPoint, hitNormal);
+            }
+        }
     }
 }
