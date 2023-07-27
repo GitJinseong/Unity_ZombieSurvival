@@ -11,6 +11,11 @@ public class ZombieSpawner : MonoBehaviour {
     private List<Zombie> zombies = new List<Zombie>(); // 생성된 좀비들을 담는 리스트
     private int wave; // 현재 웨이브
 
+    private void Awake()
+    {
+        zombieDatas[0] = ResourceManager.instance.zombieData_default;
+    }
+
     private void Update() {
         // 게임 오버 상태일때는 생성하지 않음
         if (GameManager.instance != null && GameManager.instance.isGameover)
@@ -60,4 +65,5 @@ public class ZombieSpawner : MonoBehaviour {
         zombie.onDeath += () => Destroy(zombie.gameObject, 10f);
         zombie.onDeath += () => GameManager.instance.AddScore(100);
     }
+
 }
