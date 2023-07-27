@@ -1,5 +1,5 @@
 ﻿using System.Collections;
-using UnityEditor.Rendering;
+//using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.AI; // AI, 내비게이션 시스템 관련 코드 가져오기
 

@@ -1,5 +1,5 @@
 ﻿using System.Collections;
-using UnityEditor.SceneManagement;
+//using UnityEditor.SceneManagement;
 using UnityEngine;
 
 // 총을 구현
