@@ -13,7 +13,9 @@ public class ZombieSpawner : MonoBehaviour {
 
     private void Awake()
     {
-        zombieDatas[0] = ResourceManager.instance.zombieData_default;
+        zombieDatas[0] = ResourceManager.instance.csvZombieDatas[0];
+        zombieDatas[1] = ResourceManager.instance.csvZombieDatas[1];
+        zombieDatas[2] = ResourceManager.instance.csvZombieDatas[2];
     }
 
     private void Update() {

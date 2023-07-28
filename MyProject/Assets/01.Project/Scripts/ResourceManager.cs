@@ -24,8 +24,12 @@ public class ResourceManager : MonoBehaviour
     }
 
     //private string dataPath = default;
-    private static string zombieDataPath = default;
-    public ZombieData zombieData_default = default;
+    //private static string zombieDataPath = default;
+    //public ZombieData zombieData_default = default;
+    //public ZombieData ZombieData_Fast = default;
+    //public ZombieData ZombieData_Heavy = default;
+    public ZombieData[] csvZombieDatas = default;
+
 
     private void Awake()
     {
@@ -33,10 +37,12 @@ public class ResourceManager : MonoBehaviour
         //ZombieData zombieData_ = AssetDatabase.LoadAssetAtPath<ZombieData>(zombieDataPath);
 
         //zombieDataPath = "Assets/01.Project/Scripables";
-        zombieDataPath = "Scriptables";
-        zombieDataPath = string.Format("{0}/{1}", zombieDataPath, "Zombie Data Default");
+        //zombieDataPath = "Scriptables";
+        //zombieDataPath = string.Format("{0}/{1}", zombieDataPath, "Zombie Data Default");
 
-        zombieData_default = Resources.Load<ZombieData>(zombieDataPath);
+        //zombieData_default = Resources.Load<ZombieData>(zombieDataPath);
+        //zombieDataPath = new ZombieData();
+        //Debug.Log(CSVReader.instance.dataDictionary["ZOMBIE_TYPE"]);
         //ZombieData zombieData_ = Resources.Load<ZombieData>(zombieDataPath);
 
 
@@ -45,8 +51,24 @@ public class ResourceManager : MonoBehaviour
         //    zombieData_.health, zombieData_.damage, zombieData_.speed);
 
         Debug.LogFormat("게임 Save data를 여기에다가 저장하는 것이 상식이다. -> {0}", Application.persistentDataPath);
-    
+
         // AES-256 암호방식 추천
+
+        // csv 파일을 불러와서 변환한다.
+        CSVReader.instance.ReadCSVFile("Assets/Resources/ZombieDatas", "ZombieSurvivalDatas.csv");
+
+        // csv 파일을 받아서 ZombieData 클래스의 객체를 생성
+        int size = CSVReader.instance.dataDictionary["ZOMBIE_TYPE"].Count;
+        csvZombieDatas = new ZombieData[size];
+        for (int i = 0; i < size; i++)
+        {
+            float health = float.Parse(CSVReader.instance.dataDictionary["HEALTH"][i]);
+            float damage = float.Parse(CSVReader.instance.dataDictionary["DAMAGE"][i]);
+            float speed = float.Parse(CSVReader.instance.dataDictionary["SPEED"][i]);
+            Color skinColor = default;
+            ColorUtility.TryParseHtmlString(CSVReader.instance.dataDictionary["SKIN_COLOR"][i], out skinColor);
+            csvZombieDatas[i] = new ZombieData(health, damage, speed, skinColor);
+        }
     }
 
     // Start is called before the first frame update
